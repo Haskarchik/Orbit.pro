@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "../globals.css";
 import { Language } from "@/lib/translations";
+import { DashboardProvider } from "@/context/DashboardContext";
+import DashboardLayout from "@/components/DashboardLayout";
+
+const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
   title: "Orbit Pro | Habit Architecture & Financial Discipline",
@@ -10,9 +16,6 @@ export async function generateStaticParams() {
   return [{ lang: 'en' }, { lang: 'ua' }];
 }
 
-import { DashboardProvider } from "@/context/DashboardContext";
-import DashboardLayout from "@/components/DashboardLayout";
-
 export default async function RootLayout({
   children,
   params,
@@ -22,11 +25,16 @@ export default async function RootLayout({
 }>) {
   const { lang: langParam } = await params;
   const lang = langParam as Language;
+  
   return (
-    <DashboardProvider lang={lang}>
-        <DashboardLayout lang={lang}>
-            {children}
-        </DashboardLayout>
-    </DashboardProvider>
+    <html lang={lang}>
+      <body className={inter.className + " antialiased"}>
+        <DashboardProvider lang={lang}>
+            <DashboardLayout lang={lang}>
+                {children}
+            </DashboardLayout>
+        </DashboardProvider>
+      </body>
+    </html>
   );
 }
