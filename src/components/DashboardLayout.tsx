@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { useDashboard } from '@/context/DashboardContext';
 import AuthScreen from '@/components/AuthScreen';
 import { Language, TRANSLATIONS } from '@/lib/translations';
-import { LayoutDashboard, Target, ShieldCheck, BarChart3, User as UserIcon } from 'lucide-react';
+import { LayoutDashboard, Target, ShieldCheck, BarChart3, User as UserIcon, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -42,7 +42,8 @@ export default function DashboardLayout({ children, lang }: { children: React.Re
         { icon: Target, href: `/${lang}/goals` },
         { icon: ShieldCheck, href: `/${lang}/calendar` },
         { icon: BarChart3, href: `/${lang}/analytics` },
-        { icon: UserIcon, href: `/${lang}/profile` }
+        { icon: UserIcon, href: `/${lang}/profile` },
+        { icon: Settings, href: `/${lang}/settings` }
     ];
 
     return (
