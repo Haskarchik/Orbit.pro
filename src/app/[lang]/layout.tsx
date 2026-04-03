@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "../globals.css";
 import { Language } from "@/lib/translations";
-
-const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
   title: "Orbit Pro | Habit Architecture & Financial Discipline",
@@ -27,14 +23,10 @@ export default async function RootLayout({
   const { lang: langParam } = await params;
   const lang = langParam as Language;
   return (
-    <html lang={lang}>
-      <body className={inter.className + " antialiased"}>
-        <DashboardProvider lang={lang}>
-            <DashboardLayout lang={lang}>
-                {children}
-            </DashboardLayout>
-        </DashboardProvider>
-      </body>
-    </html>
+    <DashboardProvider lang={lang}>
+        <DashboardLayout lang={lang}>
+            {children}
+        </DashboardLayout>
+    </DashboardProvider>
   );
 }
