@@ -73,10 +73,10 @@ const SavingsTracker: React.FC<SavingsProps> = ({ lang, goals, finances, currenc
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                    <Target size={16} className="text-cyan-500" />
-                    {dict.savings}
+            <div className="flex items-center justify-between gap-4">
+                <h3 className="text-[10px] md:text-sm font-black uppercase tracking-[0.05em] md:tracking-[0.2em] text-slate-500 flex items-center gap-2 min-w-0">
+                    <Target size={16} className="text-cyan-500 flex-shrink-0" />
+                    <span className="truncate">{dict.savings}</span>
                 </h3>
                 <button 
                     onClick={() => setShowAdd(!showAdd)}
@@ -174,7 +174,7 @@ const SavingsTracker: React.FC<SavingsProps> = ({ lang, goals, finances, currenc
                     const progress = Math.min(100, (goal.current / goal.target) * 100);
                     
                     return (
-                        <div key={goal.id} className="glass-card group hover:border-slate-700/50 transition-all p-6 relative">
+                        <div key={goal.id} className="glass-card group hover:border-slate-700/50 transition-all p-5 md:p-6 relative">
                             <div className="absolute inset-0 cursor-pointer" onClick={() => setSelectedGoalId(goal.id)} />
                             
                             <div className="relative z-10 flex items-start justify-between mb-4 pointer-events-none">

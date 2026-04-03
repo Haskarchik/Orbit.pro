@@ -88,23 +88,23 @@ const HabitCalendar: React.FC<CalendarProps> = ({ lang, habits, finances, curren
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
             {/* CALENDAR HEADER */}
-            <div className="flex items-center justify-between bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900/50 p-4 md:p-6 rounded-3xl border border-slate-800 gap-6">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-orange-600/10 text-orange-500 rounded-2xl flex items-center justify-center border border-orange-600/20">
-                        <CalendarIcon size={24} />
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-600/10 text-orange-500 rounded-2xl flex items-center justify-center border border-orange-600/20 flex-shrink-0">
+                        <CalendarIcon size={20} className="md:w-6 md:h-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black italic text-white uppercase tracking-tighter">
+                        <h2 className="text-lg md:text-xl font-black italic text-white uppercase tracking-tighter">
                             {viewDate.toLocaleString(lang === 'ua' ? 'uk-UA' : 'en-US', { month: 'long', year: 'numeric' })}
                         </h2>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'ua' ? 'ЛАБОРАТОРІЯ ЧАСУ' : 'TIME LABORATORY'}</p>
+                        <p className="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'ua' ? 'ЛАБОРАТОРІЯ ЧАСУ' : 'TIME LABORATORY'}</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={prevMonth} className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-all">
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <button onClick={prevMonth} className="flex-1 sm:w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-all">
                         <ChevronLeft size={18} />
                     </button>
-                    <button onClick={nextMonth} className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-all">
+                    <button onClick={nextMonth} className="flex-1 sm:w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-600 transition-all">
                         <ChevronRight size={18} />
                     </button>
                 </div>

@@ -75,7 +75,7 @@ export default function DashboardLayout({ children, lang }: { children: React.Re
                 ))}
             </div>
 
-            <section className={`transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:pl-32' : 'lg:pl-80'} min-h-screen pb-32 px-6 md:px-10 lg:px-16 space-y-12 pt-8 md:pt-12`}>
+            <section className={`transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:pl-32' : 'lg:pl-80'} min-h-screen pb-32 px-4 md:px-10 lg:px-16 space-y-12 pt-8 md:pt-12`}>
                 {children}
             </section>
         </main>

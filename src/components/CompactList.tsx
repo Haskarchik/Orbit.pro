@@ -46,31 +46,31 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
     <div className="space-y-6 animate-in slide-in-from-bottom duration-700">
       {/* STATS ROW */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-card p-5 border-slate-800/50 flex items-center gap-6">
-          <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center border border-orange-500/20 shadow-[0_0_15px_rgba(234,88,12,0.1)]">
+        <div className="glass-card p-4 md:p-5 border-slate-800/50 flex items-center gap-4 md:gap-6">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center border border-orange-500/20 shadow-[0_0_15px_rgba(234,88,12,0.1)] flex-shrink-0">
             <Zap size={18} />
           </div>
           <div>
-            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{lang === 'ua' ? 'Ритуалів' : 'Rituals'}</div>
-            <div className="text-xl font-black italic text-white">{habits.length}</div>
+            <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.1em] md:tracking-widest">{lang === 'ua' ? 'Ритуалів' : 'Rituals'}</div>
+            <div className="text-lg md:text-xl font-black italic text-white">{habits.length}</div>
           </div>
         </div>
-        <div className="glass-card p-5 border-emerald-500/10 flex items-center gap-4">
-          <div className="w-9 h-9 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center">
-            <TrendingUp size={18} />
+        <div className="glass-card p-4 md:p-5 border-emerald-500/10 flex items-center gap-4">
+          <div className="w-9 h-9 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <TrendingUp size={16} />
           </div>
           <div>
-            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{dict.income}</div>
-            <div className="text-xl font-black italic text-emerald-400">+{currency}{totalIncome.toLocaleString()}</div>
+            <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.1em] md:tracking-widest">{dict.income}</div>
+            <div className="text-lg md:text-xl font-black italic text-emerald-400">+{currency}{totalIncome.toLocaleString()}</div>
           </div>
         </div>
-        <div className="glass-card p-5 border-red-500/10 flex items-center gap-4">
-          <div className="w-9 h-9 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center">
-            <TrendingDown size={18} />
+        <div className="glass-card p-4 md:p-5 border-red-500/10 flex items-center gap-4">
+          <div className="w-9 h-9 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <TrendingDown size={16} />
           </div>
           <div>
-            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{dict.expense}</div>
-            <div className="text-xl font-black italic text-red-400">-{currency}{totalExpense.toLocaleString()}</div>
+            <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.1em] md:tracking-widest">{dict.expense}</div>
+            <div className="text-lg md:text-xl font-black italic text-red-400">-{currency}{totalExpense.toLocaleString()}</div>
           </div>
         </div>
       </div>
@@ -79,12 +79,12 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         {/* LEFT: HABITS / TASKS */}
         <div className="glass-card flex flex-col h-[450px] md:h-[500px]">
-          <div className="flex items-center justify-between mb-6 flex-shrink-0">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 flex-shrink-0 gap-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-500 flex items-center gap-2">
               <Zap size={12} className="text-orange-500" />
               {lang === 'ua' ? 'Ритуали та задачі' : 'Rituals & Tasks'}
             </h3>
-            <span className="text-[10px] font-bold text-slate-700 tracking-widest">
+            <span className="text-[9px] md:text-[10px] font-bold text-slate-700 tracking-wider md:tracking-widest">
               {sortedHabits.length} {dict.loggedEntities}
             </span>
           </div>
@@ -147,12 +147,12 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
 
         {/* RIGHT: FINANCES */}
         <div className="glass-card flex flex-col h-[500px]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 flex-shrink-0 gap-2">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 flex-shrink-0 gap-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-500 flex items-center gap-2">
               <Wallet size={12} className="text-cyan-500" />
               {lang === 'ua' ? 'Фінансові операції' : 'Transactions'}
             </h3>
-            <span className="text-[10px] font-bold text-slate-700 tracking-widest">
+            <span className="text-[9px] md:text-[10px] font-bold text-slate-700 tracking-wider md:tracking-widest">
               {sortedFinances.length} {dict.loggedEntities}
             </span>
           </div>

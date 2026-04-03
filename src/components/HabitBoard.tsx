@@ -105,8 +105,8 @@ const HabitBoard: React.FC<BoardProps> = ({ lang, habits, finances, currency, on
 
   return (
     <div className="animate-in fade-in duration-700">
-      {/* HABIT KANBAN — 3 columns */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* HABIT KANBAN — Responsive Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4">
         {habitColumns.map((col) => {
           const colHabits = habits.filter(h => h.status === col.id);
           const isDropTarget = dragOverCol === col.id;

@@ -39,7 +39,7 @@ const HabitMatrix: React.FC<MatrixProps> = ({ lang, habits, onToggle }) => {
       {/* TREND CHART */}
       <div className="glass-card h-[220px] bg-slate-950/20 border-cyan-500/10 mb-8 p-6">
         <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-500">
                 {lang === 'ua' ? 'Динаміка Виконання' : 'Protocol Velocity'}
             </h3>
         </div>
@@ -69,7 +69,7 @@ const HabitMatrix: React.FC<MatrixProps> = ({ lang, habits, onToggle }) => {
       {/* INTERACTIVE MATRIX */}
       <div className="glass-card p-6 md:p-8 border-slate-800/50 bg-slate-900/10 hover:border-slate-700/50 transition-all overflow-hidden">
         <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-500">
                 {lang === 'ua' ? 'Цілісність Задач' : 'Task Integrity'}
             </h3>
         </div>

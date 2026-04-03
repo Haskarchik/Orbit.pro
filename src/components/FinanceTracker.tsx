@@ -141,9 +141,9 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
 
       {/* HISTORY TABLE */}
       <div className="glass-card flex-1 min-h-[400px]">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6 px-2 flex items-center justify-between">
-            {dict.history}
-            <span className="bg-slate-800 px-2 py-1 rounded-md text-white font-bold">{finances.length}</span>
+        <h3 className="text-[10px] font-black uppercase tracking-[0.05em] md:tracking-[0.2em] text-slate-500 mb-6 px-2 flex items-center justify-between gap-4">
+            <span className="truncate">{dict.history}</span>
+            <span className="bg-slate-800 px-2 py-1 rounded-md text-white font-bold flex-shrink-0">{finances.length}</span>
         </h3>
         
         <div className="space-y-3">
@@ -153,7 +153,7 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
             </div>
           ) : (
             finances.slice().reverse().map(f => (
-              <div key={f.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-800/10 hover:bg-slate-950 hover:border-slate-800 border border-slate-800/30 rounded-2xl transition-all group">
+              <div key={f.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-5 bg-slate-800/10 hover:bg-slate-950 hover:border-slate-800 border border-slate-800/30 rounded-2xl transition-all group">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className={`p-3 rounded-xl flex-shrink-0 ${f.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                     {f.type === 'income' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
