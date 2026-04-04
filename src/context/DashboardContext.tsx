@@ -36,9 +36,9 @@ interface DashboardContextType {
     updateSavingsGoal: (id: number, current: number) => void;
     deleteSavingsGoal: (id: number) => void;
     handleLogout: () => Promise<void>;
-    aiInsight: string;
-    setAiInsight: (text: string, fingerprint: string) => void;
-    insightFingerprint: string;
+    recordActivity: (type: string, text: string, extra?: any) => void;
+    aiCache: Record<string, string>;
+    setAiCache: (fingerprint: string, text: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -200,12 +200,10 @@ export function DashboardProvider({ children, lang }: { children: ReactNode, lan
 
     const dict = useMemo(() => TRANSLATIONS[lang], [lang]);
 
-    const [aiInsight, setAiInsightState] = useState<string>("");
-    const [insightFingerprint, setInsightFingerprint] = useState<string>("");
+    const [aiCache, setAiCacheState] = useState<Record<string, string>>({});
 
-    const setAiInsight = (text: string, fingerprint: string) => {
-        setAiInsightState(text);
-        setInsightFingerprint(fingerprint);
+    const setAiCache = (fingerprint: string, text: string) => {
+        setAiCacheState(prev => ({ ...prev, [fingerprint]: text }));
     };
 
     return (
@@ -213,7 +211,7 @@ export function DashboardProvider({ children, lang }: { children: ReactNode, lan
             user, habits, finances, savingsGoals, activityLog, categories, currency, loading, disciplineLevel, currencySymbol, dict,
             setHabits, setFinances, setSavingsGoals, setCategories, setCurrency, logActivity, toggleDay, addHabit,
             updateHabitStatus, deleteHabit, addFinance, deleteFinance, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal,
-            handleLogout, aiInsight, setAiInsight, insightFingerprint
+            handleLogout, recordActivity: logActivity, aiCache, setAiCache
         }}>
             {children}
         </DashboardContext.Provider>

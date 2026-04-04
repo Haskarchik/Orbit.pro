@@ -182,19 +182,23 @@ const HabitBoard: React.FC<BoardProps> = ({ lang, habits, finances, currency, on
                         )}
                       </div>
 
-                      {/* Quick status buttons on hover */}
-                      <div className="grid grid-cols-3 gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-all">
-                        {(['todo', 'doing', 'done'] as Status[]).map((st) => (
+                      {/* Quick status buttons - Visible on mobile, hover on desktop */}
+                      <div className="grid grid-cols-3 gap-1.5 mt-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
+                        {habitColumns.map((col) => (
                           <button
-                            key={st}
-                            onClick={() => onStatusChange(habit.id, st)}
-                            className={`text-[8px] font-black uppercase py-1 rounded border transition-colors ${
-                              habit.status === st
-                                ? 'bg-slate-800 border-slate-600 text-white'
-                                : 'border-slate-800 text-slate-700 hover:text-slate-400'
+                            key={col.id}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onStatusChange(habit.id, col.id);
+                            }}
+                            className={`flex flex-col items-center gap-1 py-1.5 rounded-xl border transition-all ${
+                              habit.status === col.id
+                                ? `${col.bg} ${col.border} ${col.accent}`
+                                : 'bg-slate-950/40 border-slate-900 text-slate-700 hover:text-slate-400 hover:border-slate-800'
                             }`}
                           >
-                            {st === 'todo' ? dict.todo : st === 'doing' ? dict.doing : dict.done}
+                            <col.icon size={10} />
+                            <span className="text-[7px] font-black uppercase tracking-tighter">{col.label}</span>
                           </button>
                         ))}
                       </div>

@@ -22,9 +22,10 @@ interface FinanceProps {
   currency: string;
   onAdd: (amount: number, type: 'income' | 'expense', note: string, category: string) => void;
   onDelete: (id: number) => void;
+  brief?: boolean;
 }
 
-const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, currency, onAdd, onDelete }) => {
+const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, currency, onAdd, onDelete, brief }) => {
   const dict = TRANSLATIONS[lang];
   const [showForm, setShowForm] = useState<null | 'income' | 'expense'>(null);
   const [amount, setAmount] = useState('');
@@ -56,7 +57,7 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
             <Wallet size={12} />
             {dict.totalBalance}
           </div>
-          <div className={`text-4xl font-bold tracking-tighter ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className={`text-3xl sm:text-4xl font-bold tracking-tighter ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
             {currency}{balance.toLocaleString()}
           </div>
         </div>
@@ -140,48 +141,50 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
       )}
 
       {/* HISTORY TABLE */}
-      <div className="glass-card flex-1 min-h-[400px]">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.05em] md:tracking-[0.2em] text-slate-500 mb-6 px-2 flex items-center justify-between gap-4">
-            <span className="truncate">{dict.history}</span>
-            <span className="bg-slate-800 px-2 py-1 rounded-md text-white font-bold flex-shrink-0">{finances.length}</span>
-        </h3>
-        
-        <div className="space-y-3">
-          {finances.length === 0 ? (
-            <div className="text-center py-20 text-slate-600 text-[10px] uppercase font-bold tracking-widest italic leading-relaxed">
-                {dict.noHistory}
-            </div>
-          ) : (
-            finances.slice().reverse().map(f => (
-              <div key={f.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-5 bg-slate-800/10 hover:bg-slate-950 hover:border-slate-800 border border-slate-800/30 rounded-2xl transition-all group">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className={`p-3 rounded-xl flex-shrink-0 ${f.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                    {f.type === 'income' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-black text-slate-300 italic truncate">{f.note}</div>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-[9px] bg-slate-900 px-2 py-1 rounded-lg text-slate-500 font-black uppercase tracking-tighter border border-slate-800 whitespace-nowrap">{f.category}</span>
-                        <span className="text-[9px] text-slate-600 font-bold whitespace-nowrap">{new Date(f.id).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between sm:justify-end gap-6 flex-shrink-0 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-800/30 sm:border-0">
-                    <div className={`font-black italic text-md ${f.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {f.type === 'income' ? '+' : '-'}{currency}{f.amount.toLocaleString()}
-                    </div>
-                    <button 
-                        onClick={() => onDelete(f.id)}
-                        className="text-slate-800 hover:text-red-500 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100"
-                    >
-                        <Trash2 size={16} />
-                    </button>
-                </div>
+      {!brief && (
+        <div className="glass-card flex-1 min-h-[400px]">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.05em] md:tracking-[0.2em] text-slate-500 mb-6 px-2 flex items-center justify-between gap-4">
+              <span className="truncate">{dict.history}</span>
+              <span className="bg-slate-800 px-2 py-1 rounded-md text-white font-bold flex-shrink-0">{finances.length}</span>
+          </h3>
+          
+          <div className="space-y-3">
+            {finances.length === 0 ? (
+              <div className="text-center py-20 text-slate-600 text-[10px] uppercase font-bold tracking-widest italic leading-relaxed">
+                  {dict.noHistory}
               </div>
-            ))
-          )}
+            ) : (
+              finances.slice().reverse().map(f => (
+                <div key={f.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-5 bg-slate-800/10 hover:bg-slate-950 hover:border-slate-800 border border-slate-800/30 rounded-2xl transition-all group">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className={`p-3 rounded-xl flex-shrink-0 ${f.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                      {f.type === 'income' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-slate-300 italic truncate">{f.note}</div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-[9px] bg-slate-900 px-2 py-1 rounded-lg text-slate-500 font-black uppercase tracking-tighter border border-slate-800 whitespace-nowrap">{f.category}</span>
+                          <span className="text-[9px] text-slate-600 font-bold whitespace-nowrap">{new Date(f.id).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between sm:justify-end gap-6 flex-shrink-0 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-800/30 sm:border-0">
+                      <div className={`font-black italic text-md ${f.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {f.type === 'income' ? '+' : '-'}{currency}{f.amount.toLocaleString()}
+                      </div>
+                      <button 
+                          onClick={() => onDelete(f.id)}
+                          className="text-slate-800 hover:text-red-500 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100"
+                      >
+                          <Trash2 size={16} />
+                      </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

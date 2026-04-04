@@ -47,7 +47,7 @@ export default function DashboardLayout({ children, lang }: { children: React.Re
     ];
 
     return (
-        <main className="min-h-screen bg-slate-950 text-slate-200 selection:bg-orange-500/30 selection:text-orange-500 overflow-x-hidden relative">
+        <main className="min-h-screen w-full bg-slate-950 text-slate-200 selection:bg-orange-500/30 selection:text-orange-500 overflow-x-hidden relative">
             {/* TACTICAL TOP PROGRESS BAR */}
             <div className={`fixed top-0 left-0 right-0 h-[3px] bg-indigo-500/10 z-[200] transition-opacity duration-300 ${isNavigating ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="h-full bg-gradient-to-r from-orange-600 via-orange-400 to-cyan-500 shadow-[0_0_15px_rgba(249,115,22,0.8)] transition-all duration-500 ease-out" style={{ width: isNavigating ? '70%' : '100%' }} />
@@ -63,14 +63,14 @@ export default function DashboardLayout({ children, lang }: { children: React.Re
             </div>
 
             {/* MOBILE BOTTOM NAV */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-slate-800/50 z-[100] px-6 py-4 flex items-center justify-around">
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-slate-800/50 z-[100] px-2 py-3 flex items-center justify-around">
                 {mobileMenuItems.map(item => (
                     <Link 
                         key={item.href}
                         href={item.href}
-                        className={`p-3 rounded-2xl transition-all ${pathname === item.href ? 'bg-orange-600/10 text-orange-500 shadow-[0_0_15px_rgba(234,88,12,0.1)]' : 'text-slate-600'}`}
+                        className={`p-2.5 rounded-xl transition-all ${pathname === item.href ? 'bg-orange-600/10 text-orange-500 shadow-[0_0_15px_rgba(234,88,12,0.1)]' : 'text-slate-600'}`}
                     >
-                        <item.icon size={22} className={pathname === item.href ? 'animate-in zoom-in-75 duration-300' : ''} />
+                        <item.icon size={20} className={pathname === item.href ? 'animate-in zoom-in-75 duration-300' : ''} />
                     </Link>
                 ))}
             </div>

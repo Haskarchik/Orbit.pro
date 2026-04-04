@@ -107,10 +107,66 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
 
   const COLORS = ['#06b6d4', '#f97316', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b', '#ec4899'];
 
-  const { aiInsight, insightFingerprint, setAiInsight } = useDashboard();
+  const { aiCache, setAiCache } = useDashboard();
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  const insights = useMemo(() => {
+  // We only fetch if the core metrics for the current period/lang have changed.
+  const aiRequestData = useMemo(() => {
+    const balance = stats.income - stats.expense;
+    const efficiency = Math.round(taskTrend.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend.length || 1));
+    const topExpense = stats.categoryData[0]?.name || "None";
+    
+    // The fingerprint should represent ALL data that goes into the AI prompt
+    const fingerprint = `v1-${lang}-${period}-${balance}-${efficiency}-${topExpense}-${finances.length}`;
+    
+    return {
+        fingerprint,
+        payload: {
+            lang,
+            data: {
+                balance,
+                efficiency,
+                topExpense,
+                recentHighlights: finances.slice(-5).map(f => `${f.note} (${f.category})`)
+            }
+        }
+    };
+  }, [lang, period, stats.income, stats.expense, stats.categoryData, taskTrend, finances]);
+
+  const cachedInsight = aiCache[aiRequestData.fingerprint];
+
+  useEffect(() => {
+    // ABORT if already loading or we have this exact data combination in cache
+    if (isAiLoading || cachedInsight) return;
+
+    const getDynamicAiInsight = async () => {
+        setIsAiLoading(true);
+        try {
+            const res = await fetch('/api/ai', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(aiRequestData.payload)
+            });
+            const data = await res.json();
+            if (data.summary && !data.error) {
+                setAiCache(aiRequestData.fingerprint, data.summary);
+            }
+        } catch (e) {
+            console.error("AI Insight Fetch Failure:", e);
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    // Minor delay to ensure we are not double-fetching in strict mode or rapid-fire renders
+    const timer = setTimeout(getDynamicAiInsight, 500);
+    return () => clearTimeout(timer);
+  }, [aiRequestData.fingerprint, cachedInsight, isAiLoading, setAiCache]);
+
+  const displayedInsight = useMemo(() => {
+    if (cachedInsight) return cachedInsight;
+    
+    // Fallback static summary if no AI insight is available yet
     const isUa = lang === 'ua';
     const balance = stats.income - stats.expense;
     const efficiency = Math.round(taskTrend.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend.length || 1));
@@ -126,57 +182,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
             summary = isUa 
                 ? `Схоже, цього місяця ви дуже смачно харчувалися, і це трохи вплинуло на ваш баланс.`
                 : `It looks like you enjoyed some great meals this month, which had a noticeable impact on your balance.`;
-        } else if (catName.includes('trans') || catName.includes('трасп') || catName.includes('taxi')) {
-            summary = isUa 
-                ? `Ви були дуже мобільними цього місяця. Можливо, варто звернути увагу на витрати на логістику?`
-                : `You were quite mobile this month! It might be worth taking a look at your logistics expenditures.`;
-        } else if (balance < 0) {
-            summary = isUa 
-                ? `Цього разу витрати трохи випередили доходи. Можливо, наступний місяць буде більш спокійним?`
-                : `Expenditures led income slightly this time. Perhaps a calmer month ahead will restore the balance?`;
-        } else if (efficiency > 80) {
-            summary = isUa 
-                ? `Ваша дисципліна на високому рівні! Це чудовий фундамент для нових звершень.`
-                : `Your discipline is at a high level! This is a great foundation for new achievements.`;
         }
     }
+    return summary;
+  }, [cachedInsight, lang, stats, taskTrend]);
 
-    return { summary, efficiency, balance, topExpense: topExpense?.name || "None" };
-  }, [stats, taskTrend, lang]);
-
-  useEffect(() => {
-    // Strategic Fingerprinting: identifying if data has changed enough for a new insight
-    const currentFingerprint = `${lang}-${period}-${stats.balance}-${habits.length}`;
-    if (insightFingerprint === currentFingerprint && aiInsight) return;
-
-    const getDynamicAiInsight = async () => {
-        setIsAiLoading(true);
-        try {
-            const res = await fetch('/api/ai', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    lang,
-                    data: {
-                        balance: insights.balance,
-                        efficiency: insights.efficiency,
-                        topExpense: insights.topExpense,
-                        recentHighlights: finances.slice(-5).map(f => `${f.note} (${f.category})`)
-                    }
-                })
-            });
-            const data = await res.json();
-            if (data.summary && !data.error) {
-                setAiInsight(data.summary, currentFingerprint);
-            }
-        } catch (e) {
-            console.error("AI Insight Fetch Failure:", e);
-        } finally {
-            setIsAiLoading(false);
-        }
-    };
-    getDynamicAiInsight();
-  }, [lang, period, habits.length, finances.length, stats.balance, insightFingerprint, aiInsight, setAiInsight, insights]);
+  const displayedSummary = displayedInsight;
+  const balance = stats.income - stats.expense;
+  const velocity = Math.round(taskTrend.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend.length || 1));
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
@@ -208,30 +221,30 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
               <div className="space-y-4 max-w-2xl">
                   <div className="flex items-center gap-3 mb-2">
                       <div className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em]">{lang === 'ua' ? 'Резюме для керівника' : 'Executive Summary'}</div>
-                      {aiInsight && !isAiLoading && (
+                      {cachedInsight && !isAiLoading && (
                           <div className="text-[8px] font-black bg-orange-600/10 text-orange-500 px-2 py-0.5 rounded border border-orange-500/20 tracking-widest animate-pulse">
                               {lang === 'ua' ? 'AI СПОСТЕРІГАЧ' : 'AI OBSERVER'}
                           </div>
                       )}
                   </div>
                   <h3 className={`text-2xl font-black italic text-white leading-tight uppercase transition-all duration-700 ${isAiLoading ? 'opacity-40' : 'opacity-100'}`}>
-                      {isAiLoading ? (lang === 'ua' ? 'АНАЛІЗУЮ ДАНІ...' : 'ANALYZING DATA...') : (aiInsight || insights.summary)}
+                      {isAiLoading ? (lang === 'ua' ? 'АНАЛІЗУЮ ДАНІ...' : 'ANALYZING DATA...') : displayedSummary}
                   </h3>
                   <div className="flex gap-4">
                       <div className="flex items-center gap-2 bg-slate-950/40 p-2 px-3 rounded-lg border border-slate-800">
                           <Zap size={14} className="text-orange-500" />
-                          <span className="text-[10px] font-bold text-slate-400">{lang === 'ua' ? 'Ефективність: ' : 'Velocity: '} <span className="text-white">{insights.efficiency}%</span></span>
+                          <span className="text-[10px] font-bold text-slate-400">{lang === 'ua' ? 'Ефективність: ' : 'Velocity: '} <span className="text-white">{velocity}%</span></span>
                       </div>
                       <div className="flex items-center gap-2 bg-slate-950/40 p-2 px-3 rounded-lg border border-slate-800">
                           <TrendingUp size={14} className="text-emerald-500" />
-                          <span className="text-[10px] font-bold text-slate-400">{lang === 'ua' ? 'Потік: ' : 'Flow: '} <span className={insights.balance >= 0 ? 'text-emerald-400' : 'text-red-400'}>{currency}{insights.balance.toLocaleString()}</span></span>
+                          <span className="text-[10px] font-bold text-slate-400">{lang === 'ua' ? 'Потік: ' : 'Flow: '} <span className={balance >= 0 ? 'text-emerald-400' : 'text-red-400'}>{currency}{balance.toLocaleString()}</span></span>
                       </div>
                   </div>
               </div>
               <div className="w-full md:w-48 h-32 bg-slate-950/40 rounded-2xl border border-slate-800/50 flex flex-col items-center justify-center relative group">
                   <div className="text-[10px] font-black text-slate-600 uppercase mb-2">STATUS</div>
-                  <div className={`text-xl font-black italic ${insights.balance >= 0 && insights.efficiency > 70 ? 'text-emerald-500' : 'text-orange-500'}`}>
-                      {insights.balance >= 0 && insights.efficiency > 70 ? 'OPTIMAL' : 'ADAPTIVE'}
+                  <div className={`text-xl font-black italic ${balance >= 0 && velocity > 70 ? 'text-emerald-500' : 'text-orange-500'}`}>
+                      {balance >= 0 && velocity > 70 ? 'OPTIMAL' : 'ADAPTIVE'}
                   </div>
                   <div className="absolute -inset-0.5 bg-orange-600/10 rounded-2xl -z-10 group-hover:bg-orange-600/20 transition-all blur-xl" />
               </div>
@@ -241,7 +254,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { icon: Zap, label: dict.discipline, value: `${insights.efficiency}%`, color: 'orange' },
+          { icon: Zap, label: dict.discipline, value: `${velocity}%`, color: 'orange' },
           { icon: TrendingUp, label: dict.income, value: `${currency}${stats.income.toLocaleString()}`, color: 'emerald' },
           { icon: TrendingDown, label: dict.burnRate, value: `${currency}${stats.expense.toLocaleString()}`, color: 'red' },
           { icon: Wallet, label: dict.netTreasury, value: `${currency}${stats.balance.toLocaleString()}`, color: 'cyan', special: true }

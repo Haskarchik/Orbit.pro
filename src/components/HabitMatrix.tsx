@@ -74,7 +74,7 @@ const HabitMatrix: React.FC<MatrixProps> = ({ lang, habits, onToggle }) => {
             </h3>
         </div>
 
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+        <div className="overflow-x-auto pb-4 px-0 lg:px-0 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
           <div className="min-w-[800px]">
             <table className="w-full border-separate border-spacing-y-2">
               <thead>
