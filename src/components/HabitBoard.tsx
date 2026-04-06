@@ -19,6 +19,7 @@ interface Transaction {
   type: 'income' | 'expense';
   note: string;
   category: string;
+  currency?: 'USD' | 'EUR' | 'UAH';
   date: string;
 }
 
@@ -26,14 +27,14 @@ interface BoardProps {
   lang: Language;
   habits: Habit[];
   finances: Transaction[];
-  currency: string;
+  currencySymbol: string;
   onStatusChange: (id: number, status: 'todo' | 'doing' | 'done') => void;
   onDeleteFinance?: (id: number) => void;
 }
 
 type Status = 'todo' | 'doing' | 'done';
 
-const HabitBoard: React.FC<BoardProps> = ({ lang, habits, finances, currency, onStatusChange, onDeleteFinance }) => {
+const HabitBoard: React.FC<BoardProps> = ({ lang, habits, finances, currencySymbol, onStatusChange, onDeleteFinance }) => {
   const dict = TRANSLATIONS[lang];
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverCol, setDragOverCol] = useState<Status | null>(null);

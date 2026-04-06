@@ -20,27 +20,36 @@ interface Transaction {
   type: 'income' | 'expense';
   note: string;
   category: string;
+  currency?: 'USD' | 'EUR' | 'UAH';
   date: string;
 }
+
+import { useDashboard } from '@/context/DashboardContext';
 
 interface ListProps {
   lang: Language;
   habits: Habit[];
   finances: Transaction[];
-  currency: string;
+  currencySymbol: string;
   onDelete: (id: number) => void;
   onDeleteFinance: (id: number) => void;
   onStatusChange: (id: number, status: 'todo' | 'doing' | 'done') => void;
 }
 
-const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, onDelete, onDeleteFinance, onStatusChange }) => {
+const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currencySymbol, onDelete, onDeleteFinance, onStatusChange }) => {
   const dict = TRANSLATIONS[lang];
+  const { convertCurrency, currency: baseCurrency } = useDashboard();
 
   const sortedHabits = useMemo(() => [...habits].sort((a, b) => b.id - a.id), [habits]);
   const sortedFinances = useMemo(() => [...finances].sort((a, b) => b.id - a.id), [finances]);
 
-  const totalIncome = finances.filter(f => f.type === 'income').reduce((s, f) => s + f.amount, 0);
-  const totalExpense = finances.filter(f => f.type === 'expense').reduce((s, f) => s + f.amount, 0);
+  const totalIncome = useMemo(() => finances.filter(f => f.type === 'income').reduce((s, f) => {
+    return s + convertCurrency(f.amount, f.currency || 'USD', baseCurrency);
+  }, 0), [finances, convertCurrency, baseCurrency]);
+
+  const totalExpense = useMemo(() => finances.filter(f => f.type === 'expense').reduce((s, f) => {
+    return s + convertCurrency(f.amount, f.currency || 'USD', baseCurrency);
+  }, 0), [finances, convertCurrency, baseCurrency]);
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom duration-700">
@@ -61,7 +70,7 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
           </div>
           <div>
             <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.1em] md:tracking-widest">{dict.income}</div>
-            <div className="text-lg md:text-xl font-black italic text-emerald-400">+{currency}{totalIncome.toLocaleString()}</div>
+            <div className="text-lg md:text-xl font-black italic text-emerald-400">+{currencySymbol}{Math.round(totalIncome).toLocaleString()}</div>
           </div>
         </div>
         <div className="glass-card p-4 md:p-5 border-red-500/10 flex items-center gap-4">
@@ -70,7 +79,7 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
           </div>
           <div>
             <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.1em] md:tracking-widest">{dict.expense}</div>
-            <div className="text-lg md:text-xl font-black italic text-red-400">-{currency}{totalExpense.toLocaleString()}</div>
+            <div className="text-lg md:text-xl font-black italic text-red-400">-{currencySymbol}{Math.round(totalExpense).toLocaleString()}</div>
           </div>
         </div>
       </div>
@@ -162,7 +171,9 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
               <div className="py-12 border border-dashed border-slate-800 rounded-2xl text-center">
                 <div className="text-[10px] font-black text-slate-700 uppercase italic">{dict.noHistory}</div>
               </div>
-            ) : sortedFinances.map((item) => (
+            ) : sortedFinances.map((item) => {
+              const symbol = item.currency === 'EUR' ? '€' : item.currency === 'UAH' ? '₴' : '$';
+              return (
               <div
                 key={item.id}
                 className="flex items-center group bg-slate-900/40 border border-slate-800/50 rounded-xl p-4 hover:border-slate-700/80 transition-all hover:bg-slate-800/30"
@@ -177,7 +188,7 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-200 text-sm">{item.note || (lang === 'ua' ? 'Операція' : 'Transaction')}</span>
                     <span className={`text-[9px] font-black italic ${item.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {item.type === 'income' ? '+' : '-'}{currency}{item.amount.toLocaleString()}
+                      {item.type === 'income' ? '+' : '-'}{symbol}{Math.round(item.amount).toLocaleString()}
                     </span>
                   </div>
                   <div className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-1">
@@ -194,7 +205,7 @@ const CompactList: React.FC<ListProps> = ({ lang, habits, finances, currency, on
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </div>

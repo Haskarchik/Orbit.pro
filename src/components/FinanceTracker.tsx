@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Wallet, Plus, Trash2, X, Tag, FileText, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Plus, Trash2, X, Tag, FileText, DollarSign, ChevronDown } from 'lucide-react';
 import { TRANSLATIONS, Language } from '@/lib/translations';
 
 interface Transaction {
@@ -10,6 +10,7 @@ interface Transaction {
   type: 'income' | 'expense';
   note: string;
   category: string;
+  currency?: 'USD' | 'EUR' | 'UAH';
   date: string;
 }
 
@@ -20,32 +21,44 @@ interface FinanceProps {
   finances: Transaction[];
   categories: { income: string[], expense: string[] };
   currency: string;
-  onAdd: (amount: number, type: 'income' | 'expense', note: string, category: string) => void;
+  totalBalance: number;
+  onAdd: (amount: number, type: 'income' | 'expense', note: string, category: string, currency: 'USD' | 'EUR' | 'UAH') => void;
   onDelete: (id: number) => void;
   brief?: boolean;
 }
 
-const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, currency, onAdd, onDelete, brief }) => {
+const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, currency: baseCurrencySymbol, totalBalance, onAdd, onDelete, brief }) => {
   const dict = TRANSLATIONS[lang];
   const [showForm, setShowForm] = useState<null | 'income' | 'expense'>(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [category, setCategory] = useState('');
+  const [transCurrency, setTransCurrency] = useState<'USD' | 'EUR' | 'UAH'>('USD');
+  const [showCurrencyList, setShowCurrencyList] = useState(false);
 
-  const balance = finances.reduce((acc, curr) => 
-    curr.type === 'income' ? acc + curr.amount : acc - curr.amount, 0
-  );
+  const getCurrencySymbol = (c?: string) => {
+    if (c === 'EUR') return '€';
+    if (c === 'UAH') return '₴';
+    return '$';
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !showForm) return;
     
-    onAdd(parseFloat(amount), showForm, note || (lang === 'ua' ? 'Транзакція' : 'Transaction'), category || categories[showForm][0]);
+    onAdd(
+        parseFloat(amount), 
+        showForm, 
+        note || (lang === 'ua' ? 'Транзакція' : 'Transaction'), 
+        category || categories[showForm][0],
+        transCurrency
+    );
     
     setShowForm(null);
     setAmount('');
     setNote('');
     setCategory('');
+    setShowCurrencyList(false);
   };
 
   return (
@@ -57,8 +70,8 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
             <Wallet size={12} />
             {dict.totalBalance}
           </div>
-          <div className={`text-3xl sm:text-4xl font-bold tracking-tighter ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {currency}{balance.toLocaleString()}
+          <div className={`text-3xl sm:text-4xl font-bold tracking-tighter ${totalBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {baseCurrencySymbol}{Math.round(totalBalance).toLocaleString()}
           </div>
         </div>
         <div className="absolute top-1/2 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all duration-700" />
@@ -83,10 +96,10 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="glass-card bg-slate-900 border-orange-500/30 animate-in slide-in-from-top-4 duration-300 relative space-y-4">
+        <form onSubmit={handleSubmit} className="glass-card bg-slate-900 border-orange-500/30 animate-in slide-in-from-top-4 duration-300 relative z-20 space-y-4">
           <button 
             type="button"
-            onClick={() => setShowForm(null)}
+            onClick={() => { setShowForm(null); setShowCurrencyList(false); }}
             className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"
           >
             <X size={16} />
@@ -97,16 +110,42 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
           </div>
 
           <div className="space-y-4">
-             <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">{currency}</span>
-                <input 
-                  type="number" 
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white font-bold focus:border-orange-500 outline-none transition-colors"
-                />
+             <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">{getCurrencySymbol(transCurrency)}</span>
+                    <input 
+                    type="number" 
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white font-bold focus:border-orange-500 outline-none transition-colors"
+                    />
+                </div>
+                <div className="relative">
+                    <button 
+                        type="button"
+                        onClick={() => setShowCurrencyList(!showCurrencyList)}
+                        className="h-full bg-slate-950 border border-slate-800 rounded-xl px-4 flex items-center gap-2 text-white font-black text-[10px] uppercase tracking-widest hover:border-orange-500 transition-all outline-none"
+                    >
+                        {transCurrency}
+                        <ChevronDown size={12} className={`transition-transform ${showCurrencyList ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showCurrencyList && (
+                        <div className="absolute top-full right-0 mt-2 w-24 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            {(['USD', 'EUR', 'UAH'] as const).map(curr => (
+                                <button
+                                    key={curr}
+                                    type="button"
+                                    onClick={() => { setTransCurrency(curr); setShowCurrencyList(false); }}
+                                    className={`w-full px-4 py-2 text-left text-[10px] font-black uppercase tracking-widest transition-colors ${transCurrency === curr ? 'bg-orange-600/20 text-orange-500' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                                >
+                                    {curr}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
              </div>
 
              <div className="grid grid-cols-1 gap-4">
@@ -170,7 +209,7 @@ const FinanceTracker: React.FC<FinanceProps> = ({ lang, finances, categories, cu
                   </div>
                   <div className="flex items-center justify-between sm:justify-end gap-6 flex-shrink-0 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-800/30 sm:border-0">
                       <div className={`font-black italic text-md ${f.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {f.type === 'income' ? '+' : '-'}{currency}{f.amount.toLocaleString()}
+                          {f.type === 'income' ? '+' : '-'}{getCurrencySymbol(f.currency)}{Math.round(f.amount).toLocaleString()}
                       </div>
                       <button 
                           onClick={() => onDelete(f.id)}

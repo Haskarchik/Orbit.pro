@@ -34,6 +34,7 @@ interface Transaction {
   type: 'income' | 'expense';
   note: string;
   category: string;
+  currency?: 'USD' | 'EUR' | 'UAH';
   date: string;
 }
 
@@ -107,17 +108,37 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
 
   const COLORS = ['#06b6d4', '#f97316', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b', '#ec4899'];
 
-  const { aiCache, setAiCache } = useDashboard();
+  const { aiCache, setAiCache, convertCurrency, currency: baseCurrency } = useDashboard();
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // We only fetch if the core metrics for the current period/lang have changed.
+  // FIXED 30D DATA FOR AI (Regardless of current view period)
+  const finances30d = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return finances.filter(f => (new Date(f.date || f.id) > d));
+  }, [finances]);
+
+  const taskTrend30d = useMemo(() => {
+    return taskTrend.slice(-30); // Use last 30 daily data points
+  }, [taskTrend]);
+
   const aiRequestData = useMemo(() => {
-    const balance = stats.income - stats.expense;
-    const efficiency = Math.round(taskTrend.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend.length || 1));
-    const topExpense = stats.categoryData[0]?.name || "None";
+    const balance = finances30d.reduce((acc, f) => {
+        const converted = convertCurrency(f.amount, f.currency || 'USD', baseCurrency);
+        return f.type === 'income' ? acc + converted : acc - converted;
+    }, 0);
+
+    const efficiency = Math.round(taskTrend30d.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend30d.length || 1));
     
-    // The fingerprint should represent ALL data that goes into the AI prompt
-    const fingerprint = `v1-${lang}-${period}-${balance}-${efficiency}-${topExpense}-${finances.length}`;
+    // Calculate 30d category data for AI
+    const counts: Record<string, number> = {};
+    finances30d.filter(f => f.type === 'expense').forEach(f => {
+      counts[f.category] = (counts[f.category] || 0) + convertCurrency(f.amount, f.currency || 'USD', baseCurrency);
+    });
+    const topExpense = Object.entries(counts).sort((a,b) => b[1] - a[1])[0]?.[0] || "None";
+    
+    // The fingerprint NO LONGER includes 'period' to prevent spamming on tab switch
+    const fingerprint = `v2-${lang}-${balance}-${efficiency}-${topExpense}-${finances30d.length}`;
     
     return {
         fingerprint,
@@ -127,11 +148,20 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
                 balance,
                 efficiency,
                 topExpense,
-                recentHighlights: finances.slice(-5).map(f => `${f.note} (${f.category})`)
+                recentHighlights: finances30d.slice(-5).map(f => `${f.note} (${f.category})`)
             }
         }
     };
-  }, [lang, period, stats.income, stats.expense, stats.categoryData, taskTrend, finances]);
+  }, [lang, finances30d, taskTrend30d, baseCurrency, convertCurrency]);
+
+  const currencyBreakdown = useMemo(() => {
+    const counts: Record<string, number> = { USD: 0, EUR: 0, UAH: 0 };
+    finances.forEach(f => {
+        const c = f.currency || 'USD';
+        counts[c] = f.type === 'income' ? counts[c] + f.amount : counts[c] - f.amount;
+    });
+    return Object.entries(counts).filter(([_, val]) => val !== 0);
+  }, [finances]);
 
   const cachedInsight = aiCache[aiRequestData.fingerprint];
 
@@ -166,29 +196,33 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
   const displayedInsight = useMemo(() => {
     if (cachedInsight) return cachedInsight;
     
-    // Fallback static summary if no AI insight is available yet
     const isUa = lang === 'ua';
-    const balance = stats.income - stats.expense;
-    const efficiency = Math.round(taskTrend.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend.length || 1));
-    const topExpense = stats.categoryData[0];
+    const balance30d = finances30d.reduce((acc, f) => {
+        const converted = convertCurrency(f.amount, f.currency || 'USD', baseCurrency);
+        return f.type === 'income' ? acc + converted : acc - converted;
+    }, 0);
+    const efficiency = Math.round(taskTrend30d.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend30d.length || 1));
     
     let summary = isUa 
-      ? "Ваша фінансова стратегія виглядає збалансованою." 
-      : "Your financial strategy looks balanced.";
+      ? "Ваша фінансова стратегія за останні 30 днів виглядає збалансованою." 
+      : "Your financial strategy over the last 30 days looks balanced.";
 
-    if (topExpense) {
-        const catName = topExpense.name.toLowerCase();
-        if (catName.includes('food') || catName.includes('їж') || catName.includes('ресто')) {
-            summary = isUa 
-                ? `Схоже, цього місяця ви дуже смачно харчувалися, і це трохи вплинуло на ваш баланс.`
-                : `It looks like you enjoyed some great meals this month, which had a noticeable impact on your balance.`;
-        }
+    // Simple heuristic for fallback
+    const topCatRaw = finances30d.filter(f => f.type === 'expense')[0]?.category.toLowerCase() || "";
+    if (topCatRaw.includes('food') || topCatRaw.includes('їж') || topCatRaw.includes('ресто')) {
+        summary = isUa 
+            ? `Схоже, за останній місяць ви дуже смачно харчувалися, і це трохи вплинуло на ваш баланс.`
+            : `It looks like you enjoyed some great meals this month, which had a noticeable impact on your balance.`;
     }
+    
     return summary;
-  }, [cachedInsight, lang, stats, taskTrend]);
+  }, [cachedInsight, lang, finances30d, taskTrend30d, baseCurrency, convertCurrency]);
 
   const displayedSummary = displayedInsight;
-  const balance = stats.income - stats.expense;
+  const currentConvertedBalance = filteredFinances.reduce((acc, f) => {
+    const converted = convertCurrency(f.amount, f.currency || 'USD', baseCurrency);
+    return f.type === 'income' ? acc + converted : acc - converted;
+  }, 0);
   const velocity = Math.round(taskTrend.reduce((acc, d) => acc + d.efficiency, 0) / (taskTrend.length || 1));
 
   return (
@@ -230,6 +264,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
                   <h3 className={`text-2xl font-black italic text-white leading-tight uppercase transition-all duration-700 ${isAiLoading ? 'opacity-40' : 'opacity-100'}`}>
                       {isAiLoading ? (lang === 'ua' ? 'АНАЛІЗУЮ ДАНІ...' : 'ANALYZING DATA...') : displayedSummary}
                   </h3>
+
                   <div className="flex gap-4">
                       <div className="flex items-center gap-2 bg-slate-950/40 p-2 px-3 rounded-lg border border-slate-800">
                           <Zap size={14} className="text-orange-500" />
@@ -237,19 +272,39 @@ const Analytics: React.FC<AnalyticsProps> = ({ lang, habits, finances, currency 
                       </div>
                       <div className="flex items-center gap-2 bg-slate-950/40 p-2 px-3 rounded-lg border border-slate-800">
                           <TrendingUp size={14} className="text-emerald-500" />
-                          <span className="text-[10px] font-bold text-slate-400">{lang === 'ua' ? 'Потік: ' : 'Flow: '} <span className={balance >= 0 ? 'text-emerald-400' : 'text-red-400'}>{currency}{balance.toLocaleString()}</span></span>
+                          <span className="text-[10px] font-bold text-slate-400">{lang === 'ua' ? 'Потік: ' : 'Flow: '} <span className={currentConvertedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}>{currency}{Math.round(currentConvertedBalance).toLocaleString()}</span></span>
                       </div>
                   </div>
               </div>
               <div className="w-full md:w-48 h-32 bg-slate-950/40 rounded-2xl border border-slate-800/50 flex flex-col items-center justify-center relative group">
                   <div className="text-[10px] font-black text-slate-600 uppercase mb-2">STATUS</div>
-                  <div className={`text-xl font-black italic ${balance >= 0 && velocity > 70 ? 'text-emerald-500' : 'text-orange-500'}`}>
-                      {balance >= 0 && velocity > 70 ? 'OPTIMAL' : 'ADAPTIVE'}
+                  <div className={`text-xl font-black italic ${currentConvertedBalance >= 0 && velocity > 70 ? 'text-emerald-500' : 'text-orange-500'}`}>
+                      {currentConvertedBalance >= 0 && velocity > 70 ? 'OPTIMAL' : 'ADAPTIVE'}
                   </div>
                   <div className="absolute -inset-0.5 bg-orange-600/10 rounded-2xl -z-10 group-hover:bg-orange-600/20 transition-all blur-xl" />
               </div>
           </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+      </div>
+
+      {/* CURRENCY VAULT SECTION */}
+      <div className="flex flex-col gap-4 animate-in slide-in-from-left duration-1000 delay-200">
+          <div className="flex items-center gap-3">
+              <div className="h-px bg-slate-800 flex-1" />
+              <div className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] px-2">{lang === 'ua' ? 'ВАЛЮТНИЙ ПОРТФЕЛЬ' : 'CURRENCY VAULT'}</div>
+              <div className="h-px bg-slate-800 flex-1" />
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+              {currencyBreakdown.map(([c, val]) => (
+                  <div key={c} className="glass-card py-2 px-6 flex items-center gap-3 border-slate-800/80 hover:border-slate-700 transition-all group">
+                      <div className={`w-2 h-2 rounded-full ${val >= 0 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                      <div className="text-[10px] font-black text-white italic tracking-widest">{c}</div>
+                      <div className={`text-sm font-black italic ${val >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {val >= 0 ? '+' : ''}{Math.round(val as number).toLocaleString()}
+                      </div>
+                  </div>
+              ))}
+          </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

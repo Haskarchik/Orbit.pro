@@ -182,7 +182,7 @@ const SavingsTracker: React.FC<SavingsProps> = ({ lang, goals, finances, currenc
                                     <h4 className="text-sm font-black italic text-white mb-1 uppercase tracking-tight">{goal.name}</h4>
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                            {currency}{goal.current.toLocaleString()} / {currency}{goal.target.toLocaleString()}
+                                            {currency}{Math.round(goal.current).toLocaleString()} / {currency}{Math.round(goal.target).toLocaleString()}
                                         </span>
                                         {goal.deadline && (
                                             <span className="text-[9px] font-black text-orange-500/60 uppercase flex items-center gap-1">
@@ -279,11 +279,11 @@ const SavingsTracker: React.FC<SavingsProps> = ({ lang, goals, finances, currenc
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
                                     <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">{dict.targetAmount}</div>
-                                    <div className="text-lg font-black italic text-white">{currency}{activeGoal.target.toLocaleString()}</div>
+                                    <div className="text-lg font-black italic text-white">{currency}{Math.round(activeGoal.target).toLocaleString()}</div>
                                 </div>
                                 <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
                                     <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">{lang === 'ua' ? 'Залишилося' : 'Remaining'}</div>
-                                    <div className="text-lg font-black italic text-cyan-400">{currency}{Math.max(0, activeGoal.target - activeGoal.current).toLocaleString()}</div>
+                                    <div className="text-lg font-black italic text-cyan-400">{currency}{Math.max(0, Math.round(activeGoal.target - activeGoal.current)).toLocaleString()}</div>
                                 </div>
                             </div>
 
@@ -296,7 +296,7 @@ const SavingsTracker: React.FC<SavingsProps> = ({ lang, goals, finances, currenc
                                                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                                                 <div className="text-xs font-bold text-slate-400">{entry.date}</div>
                                             </div>
-                                            <div className="text-xs font-black italic text-emerald-500">+{currency}{entry.amount.toLocaleString()}</div>
+                                            <div className="text-xs font-black italic text-emerald-500">+{currency}{Math.round(entry.amount).toLocaleString()}</div>
                                         </div>
                                     ))}
                                     {(!activeGoal.history || activeGoal.history.length === 0) && (

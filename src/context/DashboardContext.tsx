@@ -14,9 +14,11 @@ interface DashboardContextType {
     activityLog: any[];
     categories: { income: string[], expense: string[] };
     currency: 'USD' | 'EUR' | 'UAH';
+    exchangeRates: Record<string, number>;
     loading: boolean;
     disciplineLevel: number;
     currencySymbol: string;
+    totalBalance: number;
     dict: any;
     
     // Actions
@@ -30,7 +32,7 @@ interface DashboardContextType {
     addHabit: (name: string, type: 'routine' | 'task', time?: string) => void;
     updateHabitStatus: (id: number, status: 'todo' | 'doing' | 'done') => void;
     deleteHabit: (id: number) => void;
-    addFinance: (amount: number, type: 'income' | 'expense', note: string, category: string) => void;
+    addFinance: (amount: number, type: 'income' | 'expense', note: string, category: string, currency?: 'USD' | 'EUR' | 'UAH') => void;
     deleteFinance: (id: number) => void;
     addSavingsGoal: (name: string, target: number, current: number, deadline?: string) => void;
     updateSavingsGoal: (id: number, current: number) => void;
@@ -39,6 +41,18 @@ interface DashboardContextType {
     recordActivity: (type: string, text: string, extra?: any) => void;
     aiCache: Record<string, string>;
     setAiCache: (fingerprint: string, text: string) => void;
+    convertCurrency: (amount: number, from: 'USD' | 'EUR' | 'UAH', to: 'USD' | 'EUR' | 'UAH') => number;
+    
+    // Notifications & Reminders
+    reminders: {
+        enabled: boolean;
+        start: string; // "HH:MM"
+        end: string;
+        interval: number; // minutes
+        offset: number; // minutes before
+    };
+    setReminders: React.Dispatch<React.SetStateAction<any>>;
+    requestNotificationPermission: () => Promise<boolean>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -54,7 +68,35 @@ export function DashboardProvider({ children, lang }: { children: ReactNode, lan
         expense: ['Food', 'Transport', 'Rent', 'Shopping', 'Entertainment', 'Health', 'Other']
     });
     const [currency, setCurrency] = useState<'USD' | 'EUR' | 'UAH'>('USD');
+    const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ USD: 1, EUR: 0.92, UAH: 39 });
     const [loading, setLoading] = useState(true);
+    const [reminders, setReminders] = useState({
+        enabled: false,
+        start: "09:00",
+        end: "21:00",
+        interval: 60,
+        offset: 0
+    });
+
+    // Fetch live rates
+    useEffect(() => {
+        const fetchRates = async () => {
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await res.json();
+                if (data.rates) {
+                    setExchangeRates({
+                        USD: 1,
+                        EUR: data.rates.EUR,
+                        UAH: data.rates.UAH
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to fetch rates, using defaults.");
+            }
+        };
+        fetchRates();
+    }, []);
 
     const handleLogout = async () => {
         const { signOut } = await import('firebase/auth');
@@ -107,6 +149,7 @@ export function DashboardProvider({ children, lang }: { children: ReactNode, lan
                 if (data.categories) setCategories(data.categories);
                 if (data.currency) setCurrency(data.currency);
                 if (data.activityLog) setActivityLog(data.activityLog);
+                if (data.reminders) setReminders(data.reminders);
             }
         } catch (err) {
             console.error("Firestore sync failed:", err);
@@ -122,13 +165,14 @@ export function DashboardProvider({ children, lang }: { children: ReactNode, lan
                 try {
                     await setDoc(doc(db, "users", user.uid), {
                         habits, finances, categories, savingsGoals, activityLog, currency,
+                        reminders,
                         lastUpdated: new Date().toISOString()
                     }, { merge: true });
                 } catch (e) { console.error("Cloud sync error:", e); }
             };
             syncToFirestore();
         }
-    }, [habits, finances, categories, savingsGoals, currency, loading, user]);
+    }, [habits, finances, categories, savingsGoals, currency, reminders, loading, user]);
 
     const disciplineLevel = useMemo(() => {
         const totalDays = habits.length * 30;
@@ -168,8 +212,28 @@ export function DashboardProvider({ children, lang }: { children: ReactNode, lan
         setHabits(prev => prev.filter(h => h.id !== id));
     };
 
-    const addFinance = (amount: number, type: 'income' | 'expense', note: string, category: string) => {
-        const newTrans = { id: Date.now(), amount, type, note, category, date: new Date().toISOString() };
+    const totalBalance = useMemo(() => {
+        return finances.reduce((acc, f) => {
+            const amount = f.amount;
+            const rateFrom = exchangeRates[f.currency || 'USD'] || 1;
+            const rateTo = exchangeRates[currency] || 1;
+            // Convert to USD first, then to base currency
+            const convertedAmount = (amount / rateFrom) * rateTo;
+            return f.type === 'income' ? acc + convertedAmount : acc - convertedAmount;
+        }, 0);
+    }, [finances, currency, exchangeRates]);
+
+    const addFinance = (amount: number, type: 'income' | 'expense', note: string, category: string, transCurrency?: 'USD' | 'EUR' | 'UAH') => {
+        const c = transCurrency || currency;
+        const newTrans = { 
+            id: Date.now(), 
+            amount, 
+            type, 
+            note, 
+            category, 
+            currency: c, 
+            date: new Date().toISOString() 
+        };
         setFinances(prev => [newTrans, ...prev]);
     };
 
@@ -206,12 +270,68 @@ export function DashboardProvider({ children, lang }: { children: ReactNode, lan
         setAiCacheState(prev => ({ ...prev, [fingerprint]: text }));
     };
 
+    const convertCurrency = (amount: number, from: 'USD' | 'EUR' | 'UAH', to: 'USD' | 'EUR' | 'UAH') => {
+        const rateFrom = exchangeRates[from] || 1;
+        const rateTo = exchangeRates[to] || 1;
+        return (amount / rateFrom) * rateTo;
+    };
+
+    const requestNotificationPermission = async () => {
+        if (!("Notification" in window)) return false;
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+            setReminders(prev => ({ ...prev, enabled: true }));
+            return true;
+        }
+        return false;
+    };
+
+    // Notification Logic Effect
+    const lastFiredRef = React.useRef<number>(0);
+
+    useEffect(() => {
+        if (!reminders.enabled) return;
+
+        const checkReminders = () => {
+            const now = new Date();
+            const nowTotalMin = now.getHours() * 60 + now.getMinutes();
+            
+            // Avoid double firing in the same minute
+            if (lastFiredRef.current === nowTotalMin) return;
+
+            const getMinutes = (timeStr: string) => {
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            const startMin = getMinutes(reminders.start);
+            const endMin = getMinutes(reminders.end);
+
+            if (nowTotalMin >= startMin && nowTotalMin <= endMin) {
+                // (current_min + offset) % interval == 0
+                if ((nowTotalMin + reminders.offset) % reminders.interval === 0) {
+                    new Notification("Orbit Pro Protocol", {
+                        body: lang === 'ua' 
+                            ? "Минуло ще коло часу! Перевір свої ритуали та фінансові цілі." 
+                            : "Another cycle completed! Review your rituals and financial objectives.",
+                        icon: "/favicon.ico"
+                    });
+                    lastFiredRef.current = nowTotalMin;
+                }
+            }
+        };
+
+        const interval = setInterval(checkReminders, 15000); // Check every 15 seconds
+        return () => clearInterval(interval);
+    }, [reminders, lang]);
+
     return (
         <DashboardContext.Provider value={{
-            user, habits, finances, savingsGoals, activityLog, categories, currency, loading, disciplineLevel, currencySymbol, dict,
+            user, habits, finances, savingsGoals, activityLog, categories, currency, exchangeRates, loading, disciplineLevel, currencySymbol, totalBalance, dict,
             setHabits, setFinances, setSavingsGoals, setCategories, setCurrency, logActivity, toggleDay, addHabit,
             updateHabitStatus, deleteHabit, addFinance, deleteFinance, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal,
-            handleLogout, recordActivity: logActivity, aiCache, setAiCache
+            handleLogout, recordActivity: logActivity, aiCache, setAiCache, convertCurrency,
+            reminders, setReminders, requestNotificationPermission
         }}>
             {children}
         </DashboardContext.Provider>

@@ -7,6 +7,7 @@ import HabitCalendar from '@/components/HabitCalendar';
 import CompactList from '@/components/CompactList';
 import FinanceTracker from '@/components/FinanceTracker';
 import SavingsTracker from '@/components/SavingsTracker';
+import Profile from '@/components/Profile';
 import { useDashboard } from '@/context/DashboardContext';
 import { TRANSLATIONS, Language } from '@/lib/translations';
 import { 
@@ -28,10 +29,17 @@ export default function DashboardPage({ params }: { params: Promise<{ lang: stri
     const { lang: langParam } = React.use(params);
     const lang = langParam as Language;
     const { 
-        habits, finances, savingsGoals, disciplineLevel, currencySymbol,
-        toggleDay, addHabit, updateHabitStatus, deleteHabit,
-        addFinance, deleteFinance, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, dict
+        user, habits, finances, savingsGoals, activityLog, loading, disciplineLevel, currencySymbol, totalBalance, dict, 
+        currency, setCurrency, toggleDay, addHabit, updateHabitStatus, deleteHabit, addFinance, deleteFinance,
+        addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, handleLogout, convertCurrency,
+        reminders, setReminders, requestNotificationPermission
     } = useDashboard();
+
+    const changeLanguage = (newLang: Language) => {
+        const currentPath = window.location.pathname;
+        const newPath = currentPath.replace(`/${lang}`, `/${newLang}`);
+        window.location.href = newPath;
+    };
 
     const [activeSubview, setActiveSubview] = useState<string>('protocol');
     const [habitModal, setHabitModal] = useState(false);
@@ -196,6 +204,7 @@ export default function DashboardPage({ params }: { params: Promise<{ lang: stri
                                     finances={finances} 
                                     categories={financeCategories} 
                                     currency={currencySymbol} 
+                                    totalBalance={totalBalance}
                                     onAdd={addFinance} 
                                     onDelete={deleteFinance}
                                     brief={true}
@@ -204,14 +213,43 @@ export default function DashboardPage({ params }: { params: Promise<{ lang: stri
                         </>
                     )}
                     {activeSubview === 'matrix' && <HabitMatrix lang={lang} habits={habits} onToggle={handleToggle} />}
-                    {activeSubview === 'board' && <HabitBoard lang={lang} habits={habits} finances={finances} currency={currencySymbol} onStatusChange={updateHabitStatus} onDeleteFinance={deleteFinance} />}
-                    {activeSubview === 'list' && <CompactList lang={lang} habits={habits} finances={finances} currency={currencySymbol} onDelete={deleteHabit} onDeleteFinance={deleteFinance} onStatusChange={updateHabitStatus} />}
+                    {activeSubview === 'board' && <HabitBoard lang={lang} habits={habits} finances={finances} currencySymbol={currencySymbol} onStatusChange={updateHabitStatus} onDeleteFinance={deleteFinance} />}
+                    {activeSubview === 'list' && <CompactList lang={lang} habits={habits} finances={finances} currencySymbol={currencySymbol} onDelete={deleteHabit} onDeleteFinance={deleteFinance} onStatusChange={updateHabitStatus} />}
                     {activeSubview === 'calendar' && <HabitCalendar lang={lang} habits={habits} finances={finances} currency={currencySymbol} />}
+                    {activeSubview === 'profile' && (
+                        <Profile 
+                            lang={lang} 
+                            user={user} 
+                            habits={habits}
+                            finances={finances}
+                            savingsGoals={savingsGoals}
+                            activityLog={activityLog}
+                            habitsCount={habits.length}
+                            financesCount={finances.length}
+                            savingsGoalsCount={savingsGoals.length}
+                            onLogout={handleLogout}
+                            onLanguageChange={changeLanguage}
+                            onCurrencyChange={setCurrency}
+                            currencySymbol={currencySymbol}
+                            currencyCode={currency}
+                            reminders={reminders}
+                            setReminders={setReminders}
+                            requestNotificationPermission={requestNotificationPermission}
+                        />
+                    )}
 
                     <SavingsTracker lang={lang} goals={savingsGoals} finances={finances} currency={currencySymbol} onAdd={addSavingsGoal} onUpdate={updateSavingsGoal} onDelete={deleteSavingsGoal} />
                 </div>
-                <div className="hidden lg:block lg:col-span-4 min-w-0 lg:sticky top-12">
-                    <FinanceTracker lang={lang} finances={finances} categories={financeCategories} currency={currencySymbol} onAdd={addFinance} onDelete={deleteFinance} />
+                <div className="hidden lg:block lg:col-span-4 space-y-12 sticky top-8">
+                    <FinanceTracker 
+                        lang={lang} 
+                        finances={finances} 
+                        categories={financeCategories} 
+                        currency={currencySymbol} 
+                        totalBalance={totalBalance}
+                        onAdd={addFinance} 
+                        onDelete={deleteFinance} 
+                    />
                 </div>
             </div>
 

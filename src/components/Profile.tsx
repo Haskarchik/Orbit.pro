@@ -20,13 +20,19 @@ interface ProfileProps {
     savingsGoalsCount: number;
     onLogout: () => void;
     onLanguageChange: (l: Language) => void;
+    onCurrencyChange: (c: 'USD' | 'EUR' | 'UAH') => void;
     currencySymbol: string;
+    currencyCode: 'USD' | 'EUR' | 'UAH';
+    reminders: any;
+    setReminders: (val: any) => void;
+    requestNotificationPermission: () => Promise<boolean>;
 }
 
 const Profile: React.FC<ProfileProps> = ({ 
     lang, user, habits, finances, savingsGoals, activityLog,
     habitsCount, financesCount, savingsGoalsCount, 
-    onLogout, onLanguageChange, currencySymbol 
+    onLogout, onLanguageChange, onCurrencyChange, currencySymbol, currencyCode,
+    reminders, setReminders, requestNotificationPermission
 }) => {
     const dict = TRANSLATIONS[lang];
     const [journalExpanded, setJournalExpanded] = useState(false);
@@ -150,17 +156,112 @@ const Profile: React.FC<ProfileProps> = ({
                             </div>
                         </div>
 
-                        {/* Notifications */}
-                        <div className="p-6 bg-slate-950/40 border border-slate-800/50 rounded-3xl flex items-center justify-between opacity-50 grayscale">
-                            <div className="flex items-center gap-4 text-slate-500">
-                                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center border border-slate-800">
-                                    <Bell size={18} />
+                        {/* Base Currency Selection */}
+                        <div className="p-6 bg-slate-950/40 border border-slate-800/50 rounded-3xl flex items-center justify-between hover:border-slate-700 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center border border-emerald-500/20">
+                                    <Wallet size={18} />
                                 </div>
                                 <div>
-                                    <div className="text-xs font-black italic uppercase">Interface Notifications</div>
-                                    <div className="text-[10px] font-bold uppercase tracking-widest mt-0.5">{dict.futureFeature}</div>
+                                    <div className="text-xs font-black text-white italic uppercase">{lang === 'ua' ? 'Основна валюта' : 'Base Currency'}</div>
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">{lang === 'ua' ? 'Конвертація балансів' : 'Conversion for balances'}</div>
                                 </div>
                             </div>
+                            <div className="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                                {(['USD', 'EUR', 'UAH'] as const).map(curr => (
+                                    <button 
+                                        key={curr}
+                                        onClick={() => onCurrencyChange && onCurrencyChange(curr)}
+                                        className={`px-2 md:px-4 py-1.5 rounded-lg text-[10px] uppercase tracking-widest transition-all ${currencyCode === curr ? 'bg-emerald-600 text-white shadow-lg font-black' : 'text-slate-500 hover:text-white font-bold'}`}
+                                    >
+                                        {curr === 'USD' ? '$' : curr === 'EUR' ? '€' : '₴'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Notifications & Reminders */}
+                        <div className="p-6 bg-slate-950/40 border border-slate-800/50 rounded-3xl space-y-6 hover:border-slate-700 transition-all">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 ${reminders.enabled ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-slate-900 text-slate-500 border-slate-800'} rounded-xl flex items-center justify-center border transition-all`}>
+                                        <Bell size={18} />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-black text-white italic uppercase">{lang === 'ua' ? 'Розумні нагадування' : 'Smart Reminders'}</div>
+                                        <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">{lang === 'ua' ? 'Будь в курсі прогресу' : 'Stay on top of progress'}</div>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only peer" 
+                                        checked={reminders.enabled}
+                                        onChange={async (e) => {
+                                            if (e.target.checked) {
+                                                const granted = await requestNotificationPermission();
+                                                if (!granted) e.preventDefault();
+                                            } else {
+                                                setReminders((prev: any) => ({ ...prev, enabled: false }));
+                                            }
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600 after:shadow-sm"></div>
+                                </label>
+                            </div>
+
+                            {reminders.enabled && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800/50 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="space-y-3">
+                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{lang === 'ua' ? 'ЧАСОВА РАМКА' : 'TIME FRAME'}</div>
+                                        <div className="flex items-center gap-2">
+                                            <input 
+                                                type="time" 
+                                                value={reminders.start}
+                                                onChange={e => setReminders((prev: any) => ({ ...prev, start: e.target.value }))}
+                                                className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs font-bold focus:border-orange-500 outline-none w-full"
+                                            />
+                                            <span className="text-slate-700">—</span>
+                                            <input 
+                                                type="time" 
+                                                value={reminders.end}
+                                                onChange={e => setReminders((prev: any) => ({ ...prev, end: e.target.value }))}
+                                                className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs font-bold focus:border-orange-500 outline-none w-full"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <div className="space-y-3">
+                                            <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{lang === 'ua' ? 'ЧАСТОТА' : 'FREQUENCY'}</div>
+                                            <div className="bg-slate-900 border border-slate-800 rounded-xl flex p-1">
+                                                {[15, 30, 60].map(int => (
+                                                    <button 
+                                                        key={int}
+                                                        onClick={() => setReminders((prev: any) => ({ ...prev, interval: int }))}
+                                                        className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${reminders.interval === int ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-600 hover:text-white'}`}
+                                                    >
+                                                        {int}m
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{lang === 'ua' ? 'ЗАВЧАСНЕ СПОВІЩЕННЯ' : 'NOTIFICATION OFFSET'}</div>
+                                            <div className="bg-slate-900 border border-slate-800 rounded-xl flex p-1">
+                                                {[0, 5, 10, 15, 30].map(off => (
+                                                    <button 
+                                                        key={off}
+                                                        onClick={() => setReminders((prev: any) => ({ ...prev, offset: off }))}
+                                                        className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${reminders.offset === off ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-600 hover:text-white'}`}
+                                                    >
+                                                        {off === 0 ? 'FIX' : `-${off}m`}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
